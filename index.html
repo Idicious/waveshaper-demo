@@ -81,7 +81,10 @@
 
         var xAxis = d3.axisBottom(scale)
             .tickFormat(function (d) {
-                var form = d.getMilliseconds() === 0 ? '%M:%S' : '%M:%S:%L';
+                var milli = d.getMilliseconds();
+                var seconds = d.getSeconds();
+
+                var form = milli === 0 ? seconds === 0 ? '%S' : '%M:%S' : '%M:%S:%L';
                 var format = d3.timeFormat(form);
                 return format(d);
             });
