@@ -1,0 +1,9 @@
+{
+  "name": "waveshaper-demos",
+  "version": "1.0.0",
+  "description": "WaveShaper demo project",
+  "main": "index.js",
+  "repository": "https://www.github.com/Idicious/waveshaper-demos.git",
+  "author": "David Sherman",
+  "license": "MIT"
+}
