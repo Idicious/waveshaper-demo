@@ -13,7 +13,9 @@
         touch-action: none;
     }
 </style>
+
 <body>
+    <div id='timeline'></div>
     <div id='container'></div>
 
     <label for="mode">Mode</label>
@@ -35,56 +37,95 @@
     <br />
 
     <label for="resolution">Resolution</label>
-    <input id="resolution" name="resolution" type="range" min="1" max="128" value="64"></range>
+    <input id="resolution" name="resolution" type="range" min="1" max="128" value="64">
+    </range>
 
     <br />
 
     <label for="zoom">Zoom</label>
-    <input id="zoom" name="zoom" type="range" min="1" max="4096" value="512"></range>
+    <input id="zoom" name="zoom" type="range" min="1" max="4096" value="512">
+    </range>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
     <script src="https://code.jquery.com/pep/0.4.3/pep.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-    <script src="https://unpkg.com/waveshaper-dom@0.2.12/dist/waveshaper-dom.min.js"></script>
+    <script src="https://unpkg.com/waveshaper-dom@0.2.14/dist/waveshaper-dom.min.js"></script>
 
     <script>
+
         // Container is used for delegated events, the canvasses should be rendered as direct or indirect children of the container element
         var container = document.getElementById('container');
+
+        // Create simple d3 timeline
+        var timeline = d3.select('#timeline').append('svg')
+            .attr('width', container.clientWidth)
+            .attr('height', 30);
+        
+        // Convert scrollposition to date
+        var t = (position) => {
+            const time = WS.positionToTime(position);
+            var date = new Date(0);
+            date.setTime(time * 1000);
+
+            return date;
+        };
+        
+        // Initial scale
+        var scale = d3.scaleTime().range([0, container.clientWidth]);
+        
+        // Called when waveshaper options are updated to update timeline
+        var scaleUpdate = function (options) {
+            scale.domain([t(options.scrollPosition), t(options.scrollPosition + container.clientWidth)]);
+            axis.call(xAxis);
+        }
+
+        var xAxis = d3.axisBottom(scale)
+            .tickFormat(function (d) {
+                var form = d.getMilliseconds() === 0 ? '%M:%S' : '%M:%S:%L';
+                var format = d3.timeFormat(form);
+                return format(d);
+            });
+
+        // Add the axis to the newly created svg element
+        var axis = timeline.append('g')
+            .attr('fill', '#555')
+            .call(xAxis);
 
         var modeSelect = document.getElementById('modeSelect');
         var meterSelect = document.getElementById('meterSelect');
         var resolution = document.getElementById('resolution');
         var zoom = document.getElementById('zoom');
 
-        modeSelect.addEventListener('change', function(e) {
-            requestAnimationFrame(function(){
-                WS.setOptions({ 
-                    mode: e.target.value 
+        modeSelect.addEventListener('change', function (e) {
+            requestAnimationFrame(function () {
+                WS.setOptions({
+                    mode: e.target.value
                 });
             });
         });
 
-        meterSelect.addEventListener('change', function(e) {
-            requestAnimationFrame(function(){
-                WS.setOptions({ 
-                    meterType: e.target.value 
+        meterSelect.addEventListener('change', function (e) {
+            requestAnimationFrame(function () {
+                WS.setOptions({
+                    meterType: e.target.value
                 }).process();
             });
         });
 
-        resolution.addEventListener('input', function(e) {
-            requestAnimationFrame(function(){
-                WS.setOptions({ 
-                    resolution: +e.target.value 
+        resolution.addEventListener('input', function (e) {
+            requestAnimationFrame(function () {
+                WS.setOptions({
+                    resolution: +e.target.value
                 }).process();
             });
         });
 
-        zoom.addEventListener('input', function(e) {
+        zoom.addEventListener('input', function (e) {
             var { scrollPosition, samplesPerPixel, samplerate } = WS.options;
             var leftTime = WS.positionToTime(scrollPosition);
 
-            requestAnimationFrame(function(){
-                WS.setOptions({ 
+            requestAnimationFrame(function () {
+                WS.setOptions({
                     samplesPerPixel: +e.target.value
                 }).setOptions({
                     scrollPosition: WS.timeToPosition(leftTime)
@@ -131,8 +172,8 @@
             { id: '2', url: './audio/TOM.wav' },
             { id: '3', url: './audio/GTR2.mp3' },
         ]
-            
-        WS.setOptions(options);
+
+        WS.on('options', scaleUpdate).setOptions(options);
 
         tracks.forEach(track => {
             var canvas = document.createElement('canvas');
