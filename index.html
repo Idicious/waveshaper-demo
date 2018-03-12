@@ -43,13 +43,13 @@
     <br />
 
     <label for="zoom">Zoom</label>
-    <input id="zoom" name="zoom" type="range" min="1" max="4096" value="512">
+    <input id="zoom" name="zoom" type="number" step="0.1" min="1" max="4096" value="512">
     </range>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
     <script src="https://code.jquery.com/pep/0.4.3/pep.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-    <script src="https://unpkg.com/waveshaper-dom@0.2.14/dist/waveshaper-dom.min.js"></script>
+    <script src="https://unpkg.com/waveshaper-dom@0.2.15/dist/waveshaper-dom.min.js"></script>
 
     <script>
 
@@ -61,38 +61,25 @@
             .attr('width', container.clientWidth)
             .attr('height', 30);
         
-        // Convert scrollposition to date
-        var t = (position) => {
-            const time = WS.positionToTime(position);
-            var date = new Date(0);
-            date.setTime(time * 1000);
+        // D3 scale
+        var scale = d3.scaleLinear().range([0, container.clientWidth]);
 
-            return date;
-        };
-        
-        // Initial scale
-        var scale = d3.scaleTime().range([0, container.clientWidth]);
-        
-        // Called when waveshaper options are updated to update timeline
-        var scaleUpdate = function (options) {
-            scale.domain([t(options.scrollPosition), t(options.scrollPosition + container.clientWidth)]);
+        // Create axis
+        var xAxis = d3.axisBottom(scale);
+
+        // Update scale and refresh timeline when options are changed
+        WS.on('options', function (options) {
+            var start = WS.positionToTime(options.scrollPosition);
+            var duration = WS.positionToTime(options.width);
+            var end = start + duration;
+
+            scale.domain([start, end]);
             axis.call(xAxis);
-        }
-
-        var xAxis = d3.axisBottom(scale)
-            .tickFormat(function (d) {
-                var milli = d.getMilliseconds();
-                var seconds = d.getSeconds();
-
-                var form = milli === 0 ? seconds === 0 ? '%S' : '%M:%S' : '%M:%S:%L';
-                var format = d3.timeFormat(form);
-                return format(d);
-            });
+        });
 
         // Add the axis to the newly created svg element
         var axis = timeline.append('g')
-            .attr('fill', '#555')
-            .call(xAxis);
+            .attr('fill', '#555');
 
         var modeSelect = document.getElementById('modeSelect');
         var meterSelect = document.getElementById('meterSelect');
@@ -176,7 +163,7 @@
             { id: '3', url: './audio/GTR2.mp3' },
         ]
 
-        WS.on('options', scaleUpdate).setOptions(options);
+        WS.setOptions(options);
 
         tracks.forEach(track => {
             var canvas = document.createElement('canvas');
